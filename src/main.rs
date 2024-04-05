@@ -40,17 +40,18 @@ fn main() {
     match args.project {
         Some(project) => match data.get(&project) {
             Some(value) => {
-                data.insert(
-                    project,
-                    Value::Integer(value.as_integer().unwrap() + args.num),
-                );
+                let new_val = value.as_integer().unwrap() + args.num;
+                data.insert(project.clone(), Value::Integer(new_val));
                 let toml = toml::to_string(&data).unwrap();
                 fs::write(&path, toml).unwrap();
+                println!("{project}: {new_val}");
             }
             None => {
-                data.insert(project, Value::Integer(args.num));
+                let new_val = args.num;
+                data.insert(project.clone(), Value::Integer(new_val));
                 let toml = toml::to_string(&data).unwrap();
                 fs::write(&path, toml).unwrap();
+                println!("{project}: {new_val}");
             }
         },
         None => {
