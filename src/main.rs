@@ -10,7 +10,7 @@ use toml::{Table, Value};
 #[command(version, about, long_about = None)]
 struct Args {
     #[arg(short, long)]
-    key: Option<String>,
+    project: Option<String>,
 
     #[arg(short, long, default_value_t = 1, allow_hyphen_values = true)]
     num: i64,
@@ -37,15 +37,18 @@ fn main() {
         }
     };
 
-    match args.key {
-        Some(key) => match data.get(&key) {
+    match args.project {
+        Some(project) => match data.get(&project) {
             Some(value) => {
-                data.insert(key, Value::Integer(value.as_integer().unwrap() + args.num));
+                data.insert(
+                    project,
+                    Value::Integer(value.as_integer().unwrap() + args.num),
+                );
                 let toml = toml::to_string(&data).unwrap();
                 fs::write(&path, toml).unwrap();
             }
             None => {
-                data.insert(key, Value::Integer(args.num));
+                data.insert(project, Value::Integer(args.num));
                 let toml = toml::to_string(&data).unwrap();
                 fs::write(&path, toml).unwrap();
             }
