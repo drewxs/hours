@@ -16,11 +16,10 @@ struct Args {
     num: i64,
 }
 
-const HOME: &str = env!("HOME");
-
 fn main() {
     let args = Args::parse();
-    let path = format!("{HOME}/hours.toml");
+    let home = std::env::var("HOME").unwrap();
+    let path = format!("{home}/hours.toml");
 
     let contents = match fs::read_to_string(&path) {
         Ok(c) => c,
