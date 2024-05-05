@@ -18,8 +18,8 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    let home = std::env::var("HOME").unwrap();
-    let path = format!("{home}/hours.toml");
+    let path = std::env::var("HOURS_PATH")
+        .unwrap_or_else(|_| format!("{}/hours.toml", std::env::var("HOME").unwrap()));
 
     let contents = match fs::read_to_string(&path) {
         Ok(c) => c,
