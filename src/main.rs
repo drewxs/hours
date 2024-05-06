@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use toml::Table;
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, arg_required_else_help = true)]
 struct Args {
     #[arg(short, long, help = "Project key")]
     project: Option<String>,
@@ -28,6 +28,9 @@ struct Args {
         help = "Number of hours"
     )]
     num: f32,
+
+    #[arg(short, long, help = "List all hours")]
+    list: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -62,6 +65,18 @@ fn main() {
         .try_into()
         .expect("Error parsing");
 
+    if args.list {
+        if data.hours.is_empty() {
+            println!("No data found");
+        }
+
+        for (k, v) in data.hours.iter() {
+            println!("{k}: {v}");
+        }
+
+        return;
+    }
+
     if args.end {
         if data.session.is_none() {
             eprintln!("No session started");
@@ -81,41 +96,33 @@ fn main() {
         return;
     }
 
-    match args.project {
-        Some(project) => {
-            if args.start {
-                if data.session.is_some() {
-                    eprintln!("Session already started");
-                    std::process::exit(1);
-                }
+    let project = args.project.unwrap_or_else(|| {
+        eprintln!("Project key required (e.g. 'hours -p my_project')");
+        std::process::exit(1);
+    });
 
-                println!("Session started - {project}");
-                data.session = Some(Session {
-                    key: project,
-                    start: now(),
-                });
-
-                save(path, data);
-                return;
-            }
-
-            let hours = data.hours.get(&project).unwrap_or(&0.0);
-            let new_val = hours + args.num;
-            println!("{project}: {new_val}");
-            data.hours.insert(project, new_val);
-
-            save(path, data);
+    if args.start {
+        if data.session.is_some() {
+            eprintln!("Session already started");
+            std::process::exit(1);
         }
-        None => {
-            if data.hours.is_empty() {
-                println!("No data found");
-            }
 
-            for (key, value) in data.hours.iter() {
-                println!("{key}: {value}");
-            }
-        }
+        println!("Session started - {project}");
+        data.session = Some(Session {
+            key: project,
+            start: now(),
+        });
+
+        save(path, data);
+        return;
     }
+
+    let hours = data.hours.get(&project).unwrap_or(&0.0);
+    let new_val = hours + args.num;
+    println!("{project}: {new_val}");
+    data.hours.insert(project, new_val);
+
+    save(path, data);
 }
 
 fn save(path: String, data: Data) {
@@ -129,4 +136,3 @@ fn now() -> u64 {
         .unwrap()
         .as_secs()
 }
-
