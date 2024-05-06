@@ -1,6 +1,8 @@
 use std::{
     collections::HashMap,
+    env,
     fs::{self, File},
+    process,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -47,16 +49,13 @@ struct Session {
 
 fn main() {
     let args = Args::parse();
-    let path = std::env::var("HOURS_PATH")
-        .unwrap_or_else(|_| format!("{}/hours.toml", std::env::var("HOME").unwrap()));
+    let path = env::var("HOURS_PATH")
+        .unwrap_or_else(|_| format!("{}/hours.toml", env::var("HOME").unwrap()));
 
-    let contents = match fs::read_to_string(&path) {
-        Ok(c) => c,
-        Err(_) => {
-            File::create(&path).unwrap();
-            "".to_string()
-        }
-    };
+    let contents = fs::read_to_string(&path).unwrap_or_else(|_| {
+        File::create(&path).unwrap();
+        "".to_string()
+    });
 
     // TODO: create a way to fix broken toml files
     let mut data: Data = contents
@@ -69,18 +68,16 @@ fn main() {
         if data.hours.is_empty() {
             println!("No data found");
         }
-
         for (k, v) in data.hours.iter() {
             println!("{k}: {v}");
         }
-
-        return;
+        process::exit(0);
     }
 
     if args.end {
         if data.session.is_none() {
             eprintln!("No session started");
-            std::process::exit(1);
+            process::exit(1);
         }
 
         let session = data.session.unwrap();
@@ -93,18 +90,18 @@ fn main() {
         data.session = None;
 
         save(path, data);
-        return;
+        process::exit(0);
     }
 
     let project = args.project.unwrap_or_else(|| {
         eprintln!("Project key required (e.g. 'hours -p my_project')");
-        std::process::exit(1);
+        process::exit(1);
     });
 
     if args.start {
         if data.session.is_some() {
             eprintln!("Session already started");
-            std::process::exit(1);
+            process::exit(1);
         }
 
         println!("Session started - {project}");
@@ -114,7 +111,7 @@ fn main() {
         });
 
         save(path, data);
-        return;
+        process::exit(0);
     }
 
     let hours = data.hours.get(&project).unwrap_or(&0.0);
