@@ -33,6 +33,9 @@ struct Args {
 
     #[arg(short, long, help = "List all hours")]
     list: bool,
+
+    #[arg(short, long, help = "Clear")]
+    clear: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -89,6 +92,12 @@ fn main() {
         *data.hours.entry(project).or_insert(new_val) += elapsed;
         data.session = None;
 
+        save(path, data);
+        process::exit(0);
+    }
+
+    if args.clear {
+        data.hours.clear();
         save(path, data);
         process::exit(0);
     }
