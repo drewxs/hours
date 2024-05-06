@@ -62,6 +62,25 @@ fn main() {
         .try_into()
         .expect("Error parsing");
 
+    if args.end {
+        if data.session.is_none() {
+            eprintln!("No session started");
+            std::process::exit(1);
+        }
+
+        let session = data.session.unwrap();
+        let project = session.key;
+        let elapsed = (now() - session.start) as f32 / 3600.0;
+        let new_val = data.hours.get(&project).unwrap_or(&0.0) + elapsed;
+
+        println!("Session ended - {project}:{new_val}");
+        *data.hours.entry(project).or_insert(new_val) += elapsed;
+        data.session = None;
+
+        save(path, data);
+        return;
+    }
+
     match args.project {
         Some(project) => {
             if args.start {
@@ -70,59 +89,22 @@ fn main() {
                     std::process::exit(1);
                 }
 
+                println!("Session started - {project}");
                 data.session = Some(Session {
-                    key: project.clone(),
-                    start: SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs(),
+                    key: project,
+                    start: now(),
                 });
 
                 save(path, data);
-
-                println!("Session started - {project}");
-                return;
-            }
-            if args.end {
-                if data.session.is_none() {
-                    eprintln!("No session started");
-                    std::process::exit(1);
-                }
-
-                let session = data.session.clone().unwrap();
-                let now = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
-                let elapsed = (now - session.start) as f32 / 3600.0;
-                let new_val = data.hours.get(&project).unwrap_or(&0.0) + elapsed;
-                *data.hours.entry(project.clone()).or_insert(new_val) += elapsed;
-                data.session = None;
-
-                save(path, data);
-
-                println!("Session ended - {project}:{new_val}");
                 return;
             }
 
-            match data.hours.get(&project) {
-                Some(value) => {
-                    let new_val = value + args.num;
-                    data.hours.insert(project.clone(), new_val);
+            let hours = data.hours.get(&project).unwrap_or(&0.0);
+            let new_val = hours + args.num;
+            println!("{project}: {new_val}");
+            data.hours.insert(project, new_val);
 
-                    save(path, data);
-
-                    println!("{project}: {new_val}");
-                }
-                None => {
-                    let new_val = args.num;
-                    data.hours.insert(project.clone(), new_val);
-
-                    save(path, data);
-
-                    println!("{project}: {new_val}");
-                }
-            }
+            save(path, data);
         }
         None => {
             if data.hours.is_empty() {
@@ -140,3 +122,11 @@ fn save(path: String, data: Data) {
     let toml = toml::to_string(&data).unwrap();
     fs::write(&path, toml).unwrap();
 }
+
+fn now() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+
