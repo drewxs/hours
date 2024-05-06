@@ -11,16 +11,22 @@ use toml::Table;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(short, long)]
+    #[arg(short, long, help = "Project key")]
     project: Option<String>,
 
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long, action, help = "Start a session")]
     start: bool,
 
-    #[arg(short, long)]
+    #[arg(short, long, action, help = "End current session")]
     end: bool,
 
-    #[arg(short, long, default_value_t = 1.0, allow_hyphen_values = true)]
+    #[arg(
+        short,
+        long,
+        default_value_t = 1.0,
+        allow_hyphen_values = true,
+        help = "Number of hours"
+    )]
     num: f32,
 }
 
