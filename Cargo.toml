@@ -2,6 +2,10 @@
 name = "hours"
 version = "0.1.0"
 edition = "2021"
+authors = ["Andrew X. Shah <drewshah0@gmail.com>"]
+repository = "https://github.com/drewxs/hours"
+readme = "README.md"
+license = "GPL-3.0"
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }

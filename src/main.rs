@@ -6,36 +6,63 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use toml::Table;
 
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None, arg_required_else_help = true)]
-struct Args {
-    #[arg(short, long, help = "Project key")]
-    project: Option<String>,
+#[derive(Debug, Parser)]
+#[command(
+    name = "hours",
+    version,
+    author = "Andrew X. Shah, drewshah0@gmail.com",
+    about = "Hours tracking CLI", long_about = None,
+    arg_required_else_help = true,
+)]
+struct Cli {
+    #[command(subcommand)]
+    cmd: Command,
+}
 
-    #[arg(short, long, action, help = "Start a session")]
-    start: bool,
+#[derive(Debug, Subcommand)]
+enum Command {
+    #[command(visible_alias = "l")]
+    #[command(about = "List all hours")]
+    List,
 
-    #[arg(short, long, action, help = "End current session")]
-    end: bool,
+    #[command(visible_alias = "a")]
+    #[command(about = "Add hours")]
+    Add {
+        #[arg(index = 1)]
+        #[arg(help = "Project key")]
+        project: String,
 
-    #[arg(
-        short,
-        long,
-        default_value_t = 1.0,
-        allow_hyphen_values = true,
-        help = "Number of hours"
-    )]
-    num: f32,
+        #[arg(index = 2, allow_hyphen_values = true)]
+        #[arg(help = "Number of hours")]
+        hours: f32,
+    },
 
-    #[arg(short, long, help = "List all hours")]
-    list: bool,
+    #[command(visible_alias = "s")]
+    #[command(about = "Start a session")]
+    Start {
+        #[arg(index = 1)]
+        #[arg(help = "Project key")]
+        project: String,
+    },
 
-    #[arg(short, long, help = "Clear")]
-    clear: bool,
+    #[command(visible_alias = "sw")]
+    Switch {
+        #[arg(index = 1)]
+        #[arg(help = "Project key")]
+        project: String,
+    },
+
+    #[command(visible_alias = "e")]
+    #[command(about = "End current session")]
+    End,
+
+    #[command(visible_alias = "c")]
+    #[command(about = "Clear ")]
+    Clear,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -51,7 +78,7 @@ struct Session {
 }
 
 fn main() {
-    let args = Args::parse();
+    let args = Cli::parse();
     let path = env::var("HOURS_PATH")
         .unwrap_or_else(|_| format!("{}/hours.toml", env::var("HOME").unwrap()));
 
@@ -67,66 +94,77 @@ fn main() {
         .try_into()
         .expect("Error parsing");
 
-    if args.list {
-        if data.hours.is_empty() {
-            println!("No data found");
+    match args.cmd {
+        Command::Add { project, hours } => {
+            let new_hours = data.hours.get(&project).unwrap_or(&0.0) + hours;
+            println!("{project}: {new_hours}");
+            data.hours.insert(project, new_hours);
         }
-        for (k, v) in data.hours.iter() {
-            println!("{k}: {v}");
+        Command::List => {
+            if data.hours.is_empty() {
+                println!("No data found");
+            }
+            for (k, v) in data.hours.iter() {
+                println!("{k}: {v}");
+            }
         }
-        process::exit(0);
-    }
+        Command::Start { project } => {
+            if let Some(session) = data.session {
+                eprintln!("A session already exists: {}", session.key);
+                process::exit(1);
+            }
 
-    if args.end {
-        if data.session.is_none() {
-            eprintln!("No session started");
-            process::exit(1);
+            let hours = data.hours.get(&project).unwrap_or(&0.0);
+            println!("Session started - {project} [current: {hours} hours]",);
+            data.session = Some(Session {
+                key: project,
+                start: now(),
+            });
         }
+        Command::Switch { project } => {
+            if data.session.is_none() {
+                eprintln!("No session started");
+                process::exit(1);
+            }
 
-        let session = data.session.unwrap();
-        let project = session.key;
-        let elapsed = (now() - session.start) as f32 / 3600.0;
-        let new_val = data.hours.get(&project).unwrap_or(&0.0) + elapsed;
+            let session = data.session.unwrap();
+            let elapsed = (now() - session.start) as f32 / 3600.0;
+            let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
 
-        println!("Session ended - {project}:{new_val}");
-        *data.hours.entry(project).or_insert(new_val) += elapsed;
-        data.session = None;
+            println!(
+                "Session ended - {} [updated: {} hours]",
+                session.key, new_val
+            );
+            *data.hours.entry(session.key).or_insert(new_val) += elapsed;
 
-        save(path, data);
-        process::exit(0);
-    }
-
-    if args.clear {
-        data.hours.clear();
-        save(path, data);
-        process::exit(0);
-    }
-
-    let project = args.project.unwrap_or_else(|| {
-        eprintln!("Project key required (e.g. 'hours -p my_project')");
-        process::exit(1);
-    });
-
-    if args.start {
-        if data.session.is_some() {
-            eprintln!("Session already started");
-            process::exit(1);
+            let hours = data.hours.get(&project).unwrap_or(&0.0);
+            println!("Session started - {project} [current: {hours} hours]",);
+            data.session = Some(Session {
+                key: project,
+                start: now(),
+            });
         }
+        Command::End => {
+            if data.session.is_none() {
+                eprintln!("No session started");
+                process::exit(1);
+            }
 
-        println!("Session started - {project}");
-        data.session = Some(Session {
-            key: project,
-            start: now(),
-        });
+            let session = data.session.unwrap();
+            let elapsed = (now() - session.start) as f32 / 3600.0;
+            let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
 
-        save(path, data);
-        process::exit(0);
+            println!(
+                "Session ended - {} [updated: {} hours]",
+                session.key, new_val
+            );
+            *data.hours.entry(session.key).or_insert(new_val) += elapsed;
+            data.session = None;
+        }
+        Command::Clear => {
+            data.hours.clear();
+        }
     }
-
-    let hours = data.hours.get(&project).unwrap_or(&0.0);
-    let new_val = hours + args.num;
-    println!("{project}: {new_val}");
-    data.hours.insert(project, new_val);
 
     save(path, data);
 }

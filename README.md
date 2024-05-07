@@ -12,23 +12,24 @@ cargo install --git https://github.com/drewxs/hours
 
 ```sh
 # Show help
-hours -h
+hours help
+
+# List all projects/hours
+hours list
 
 # Add hours to a project (creates a new project if it doesn't exist)
-hours -p <project_name> -n <hours>
-# e.g.
-hours -p foo -n 1.5
+hours add <PROJECT> <HOURS>
 
-# List all projects
-hours -l
+# Switch session to a different project
+hours switch <PROJECT>
 
 # Start a session
 # This creates a timestamp, then adds when the session is ended
-hours -sp <project_name>
+hours start <PROJECT>
 
 # End current session
-hours -e
+hours end
 
 # Clear
-hours -c
+hours clear
 ```
