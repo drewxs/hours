@@ -84,7 +84,7 @@ fn main() {
 
     let contents = fs::read_to_string(&path).unwrap_or_else(|_| {
         File::create(&path).unwrap();
-        "".to_string()
+        "[hours]".to_string()
     });
 
     // TODO: create a way to fix broken toml files
