@@ -167,12 +167,8 @@ fn main() {
         }
     }
 
-    save(path, data);
-}
-
-fn save(path: String, data: Data) {
-    let toml = toml::to_string(&data).unwrap();
-    fs::write(&path, toml).unwrap();
+    let contents = toml::to_string(&data).unwrap();
+    fs::write(&path, contents).unwrap();
 }
 
 fn now() -> u64 {
