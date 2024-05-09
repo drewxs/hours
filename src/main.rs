@@ -163,6 +163,7 @@ fn main() {
         }
         Command::Clear => {
             data.hours.clear();
+            println!("Data cleared");
         }
     }
 
