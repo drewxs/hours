@@ -60,6 +60,14 @@ enum Command {
     #[command(about = "End current session")]
     End,
 
+    #[command(visible_alias = "rm")]
+    #[command(about = "Remove hours")]
+    Remove {
+        #[arg(index = 1)]
+        #[arg(help = "Project key")]
+        project: String,
+    },
+
     #[command(visible_alias = "c")]
     #[command(about = "Clear ")]
     Clear,
@@ -143,6 +151,14 @@ fn main() {
                 key: project,
                 start: now(),
             });
+        }
+        Command::Remove { project } => {
+            if !data.hours.contains_key(&project) {
+                eprintln!("{project} not found");
+                process::exit(1);
+            }
+            data.hours.remove(&project);
+            println!("Removed {project}");
         }
         Command::End => {
             if data.session.is_none() {
