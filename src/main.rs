@@ -27,7 +27,11 @@ struct Cli {
 enum Command {
     #[command(visible_alias = "l")]
     #[command(about = "List all hours")]
-    List,
+    List {
+        #[arg(short, long)]
+        #[arg(help = "List raw data")]
+        raw: bool,
+    },
 
     #[command(visible_alias = "a")]
     #[command(about = "Add hours")]
@@ -115,15 +119,19 @@ fn main() {
     match args.cmd {
         Command::Add { project, hours } => {
             let new_hours = data.hours.get(&project).unwrap_or(&0.0) + hours;
-            println!("{project}: {new_hours}");
+            println!("{}: {}", project, time_str(new_hours));
             data.hours.insert(project, new_hours);
         }
-        Command::List => {
+        Command::List { raw } => {
             if data.hours.is_empty() {
                 println!("No data found");
+                process::exit(0);
             }
             for (k, v) in data.hours.iter() {
-                println!("{k}: {v}");
+                match raw {
+                    true => println!("{}: {}", k, v),
+                    false => println!("{}: {}", k, time_str(*v)),
+                }
             }
         }
         Command::Session(cmd) => match cmd {
@@ -134,7 +142,11 @@ fn main() {
                 }
                 None => {
                     let hours = data.hours.get(&project).unwrap_or(&0.0);
-                    println!("Session started - {project} [current: {hours} hours]",);
+                    println!(
+                        "Session started - {} [current: {} hours]",
+                        project,
+                        time_str(*hours)
+                    );
                     data.session = Some(Session::new(project));
                 }
             },
@@ -145,12 +157,17 @@ fn main() {
 
                     println!(
                         "Session ended - {} [updated: {} hours]",
-                        session.key, new_val
+                        session.key,
+                        time_str(new_val)
                     );
                     *data.hours.entry(session.key).or_insert(new_val) += elapsed;
 
-                    let hours = data.hours.get(&project).unwrap_or(&0.0);
-                    println!("Session started - {project} [current: {hours} hours]",);
+                    let hours = *data.hours.get(&project).unwrap_or(&0.0);
+                    println!(
+                        "Session started - {} [current: {} hours]",
+                        project,
+                        time_str(hours)
+                    );
                     data.session = Some(Session::new(project));
                 }
                 None => {
@@ -165,7 +182,8 @@ fn main() {
 
                     println!(
                         "Session ended - {} [updated: {} hours]",
-                        session.key, new_val
+                        session.key,
+                        time_str(new_val)
                     );
                     *data.hours.entry(session.key).or_insert(new_val) += elapsed;
                     data.session = None;
@@ -177,13 +195,16 @@ fn main() {
             },
             SessionCommand::View => match data.session {
                 Some(session) => {
-                    let stored = data.hours.get(&session.key).unwrap_or(&0.0);
+                    let stored = *data.hours.get(&session.key).unwrap_or(&0.0);
                     let elapsed = (now() - session.start) as f32 / 3600.0;
                     let total = stored + elapsed;
 
                     println!(
                         "Session [{}]:\nStored: {} hrs\nElapsed: {} hrs\nTotal: {} hrs",
-                        session.key, stored, elapsed, total
+                        session.key,
+                        time_str(stored),
+                        time_str(elapsed),
+                        time_str(total)
                     );
                     process::exit(0);
                 }
@@ -216,4 +237,11 @@ fn now() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs()
+}
+
+fn time_str(time: f32) -> String {
+    let hours = time as u32;
+    let minutes = ((time - hours as f32) * 60.0) as u32;
+    let seconds = (((time - hours as f32) * 60.0 - minutes as f32) * 60.0) as u32;
+    String::from(format!("{:02}:{:02}:{:02}", hours, minutes, seconds))
 }
