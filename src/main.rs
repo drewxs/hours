@@ -133,10 +133,15 @@ fn main() {
                 println!("No data found");
                 process::exit(0);
             }
-            for (k, v) in data.hours.iter() {
+            for (key, value) in data.hours.iter() {
+                let longest_key = data.hours.keys().map(|k| k.len()).max().unwrap();
                 match raw {
-                    true => println!("{k}: {v}"),
-                    false => println!("{k}: {v}", v = time_str(*v)),
+                    true => println!("{key}: {value}"),
+                    false => println!(
+                        "{key}:{space}{value}",
+                        space = " ".repeat(longest_key - key.len() + 2),
+                        value = time_str(*value)
+                    ),
                 }
             }
         }
@@ -205,12 +210,12 @@ fn main() {
                     let total = stored + elapsed;
 
                     println!(
-                        "{title} \
+                        "{key} \
                         \n{divider} \
                         \nStored:   {stored} \
                         \nElapsed:  {elapsed} \
                         \nTotal:    {total}",
-                        title = session.key,
+                        key = session.key,
                         divider = "-".repeat(usize::max(18, session.key.len())),
                         stored = time_str(stored),
                         elapsed = time_str(elapsed),
