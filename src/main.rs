@@ -6,7 +6,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use toml::Table;
 
@@ -45,9 +45,9 @@ enum Command {
         hours: f32,
     },
 
-    #[command(subcommand, visible_alias = "s")]
+    #[command(visible_alias = "s")]
     #[command(about = "Manage sessions")]
-    Session(SessionCommand),
+    Session(SessionArgs),
 
     #[command(visible_alias = "rm")]
     #[command(about = "Remove hours")]
@@ -60,6 +60,12 @@ enum Command {
     #[command(visible_alias = "c")]
     #[command(about = "Clear ")]
     Clear,
+}
+
+#[derive(Debug, Args)]
+struct SessionArgs {
+    #[command(subcommand)]
+    command: Option<SessionCommand>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -134,7 +140,7 @@ fn main() {
                 }
             }
         }
-        Command::Session(cmd) => match cmd {
+        Command::Session(session) => match session.command.unwrap_or(SessionCommand::View) {
             SessionCommand::Start { project } => match data.session {
                 Some(session) => {
                     eprintln!("A session already exists: {}", session.key);
