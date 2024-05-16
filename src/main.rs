@@ -143,7 +143,7 @@ fn main() {
                 None => {
                     let hours = data.hours.get(&project).unwrap_or(&0.0);
                     println!(
-                        "Session started - {} [current: {} hours]",
+                        "Session started - {} [current: {}]",
                         project,
                         time_str(*hours)
                     );
@@ -156,7 +156,7 @@ fn main() {
                     let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
 
                     println!(
-                        "Session ended - {} [updated: {} hours]",
+                        "Session ended - {} [updated: {}]",
                         session.key,
                         time_str(new_val)
                     );
@@ -164,7 +164,7 @@ fn main() {
 
                     let hours = *data.hours.get(&project).unwrap_or(&0.0);
                     println!(
-                        "Session started - {} [current: {} hours]",
+                        "Session started - {} [current: {}]",
                         project,
                         time_str(hours)
                     );
@@ -181,7 +181,7 @@ fn main() {
                     let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
 
                     println!(
-                        "Session ended - {} [updated: {} hours]",
+                        "Session ended - {} [updated: {}]",
                         session.key,
                         time_str(new_val)
                     );
@@ -200,7 +200,7 @@ fn main() {
                     let total = stored + elapsed;
 
                     println!(
-                        "Session [{}]:\nStored: {} hrs\nElapsed: {} hrs\nTotal: {} hrs",
+                        "Session [{}]:\nStored: {}\nElapsed: {}\nTotal: {}",
                         session.key,
                         time_str(stored),
                         time_str(elapsed),
