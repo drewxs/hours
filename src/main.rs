@@ -125,7 +125,7 @@ fn main() {
     match args.cmd {
         Command::Add { project, hours } => {
             let new_hours = data.hours.get(&project).unwrap_or(&0.0) + hours;
-            println!("{}: {}", project, time_str(new_hours));
+            println!("{project}: {new_hours}", new_hours = time_str(new_hours));
             data.hours.insert(project, new_hours);
         }
         Command::List { raw } => {
@@ -135,23 +135,22 @@ fn main() {
             }
             for (k, v) in data.hours.iter() {
                 match raw {
-                    true => println!("{}: {}", k, v),
-                    false => println!("{}: {}", k, time_str(*v)),
+                    true => println!("{k}: {v}"),
+                    false => println!("{k}: {v}", v = time_str(*v)),
                 }
             }
         }
         Command::Session(session) => match session.command.unwrap_or(SessionCommand::View) {
             SessionCommand::Start { project } => match data.session {
                 Some(session) => {
-                    eprintln!("A session already exists: {}", session.key);
+                    eprintln!("A session already exists: {key}", key = session.key);
                     process::exit(1);
                 }
                 None => {
                     let hours = data.hours.get(&project).unwrap_or(&0.0);
                     println!(
-                        "Session started - {} [current: {}]",
-                        project,
-                        time_str(*hours)
+                        "Session started - {project} [current: {value}]",
+                        value = time_str(*hours)
                     );
                     data.session = Some(Session::new(project));
                 }
@@ -162,17 +161,17 @@ fn main() {
                     let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
 
                     println!(
-                        "Session ended - {} [updated: {}]",
-                        session.key,
-                        time_str(new_val)
+                        "Session ended - {key} [updated: {value}]",
+                        key = session.key,
+                        value = time_str(new_val)
                     );
                     *data.hours.entry(session.key).or_insert(new_val) += elapsed;
 
                     let hours = *data.hours.get(&project).unwrap_or(&0.0);
                     println!(
-                        "Session started - {} [current: {}]",
-                        project,
-                        time_str(hours)
+                        "Session started - {key} [current: {value}]",
+                        key = project,
+                        value = time_str(hours)
                     );
                     data.session = Some(Session::new(project));
                 }
@@ -187,9 +186,9 @@ fn main() {
                     let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
 
                     println!(
-                        "Session ended - {} [updated: {}]",
-                        session.key,
-                        time_str(new_val)
+                        "Session ended - {key} [updated: {value}]",
+                        key = session.key,
+                        value = time_str(new_val)
                     );
                     *data.hours.entry(session.key).or_insert(new_val) += elapsed;
                     data.session = None;
@@ -206,11 +205,16 @@ fn main() {
                     let total = stored + elapsed;
 
                     println!(
-                        "Session [{}]:\nStored: {}\nElapsed: {}\nTotal: {}",
-                        session.key,
-                        time_str(stored),
-                        time_str(elapsed),
-                        time_str(total)
+                        "{title} \
+                        \n{divider} \
+                        \nStored:   {stored} \
+                        \nElapsed:  {elapsed} \
+                        \nTotal:    {total}",
+                        title = session.key,
+                        divider = "-".repeat(usize::max(18, session.key.len())),
+                        stored = time_str(stored),
+                        elapsed = time_str(elapsed),
+                        total = time_str(total)
                     );
                     process::exit(0);
                 }
