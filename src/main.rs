@@ -71,12 +71,8 @@ struct SessionArgs {
 #[derive(Debug, Subcommand)]
 enum SessionCommand {
     #[command(visible_alias = "s")]
-    #[command(about = "Start a session")]
+    #[command(about = "Start/switch sessions")]
     Start { project: String },
-
-    #[command(visible_alias = "sw")]
-    #[command(about = "Switch to a different project")]
-    Switch { project: String },
 
     #[command(visible_alias = "e")]
     #[command(about = "End current session")]
@@ -148,20 +144,6 @@ fn main() {
         Command::Session(session) => match session.command.unwrap_or(SessionCommand::View) {
             SessionCommand::Start { project } => match data.session {
                 Some(session) => {
-                    eprintln!("A session already exists: {key}", key = session.key);
-                    process::exit(1);
-                }
-                None => {
-                    let hours = data.hours.get(&project).unwrap_or(&0.0);
-                    println!(
-                        "Session started - {project} [current: {value}]",
-                        value = time_str(*hours)
-                    );
-                    data.session = Some(Session::new(project));
-                }
-            },
-            SessionCommand::Switch { project } => match data.session {
-                Some(session) => {
                     let elapsed = (now() - session.start) as f32 / 3600.0;
                     let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
 
@@ -181,8 +163,12 @@ fn main() {
                     data.session = Some(Session::new(project));
                 }
                 None => {
-                    eprintln!("No session started");
-                    process::exit(1);
+                    let hours = *data.hours.get(&project).unwrap_or(&0.0);
+                    println!(
+                        "Session started - {project} [current: {value}]",
+                        value = time_str(hours)
+                    );
+                    data.session = Some(Session::new(project));
                 }
             },
             SessionCommand::End => match data.session {
