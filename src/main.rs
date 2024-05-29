@@ -6,7 +6,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use toml::Table;
 
@@ -46,8 +46,16 @@ enum Command {
     },
 
     #[command(visible_alias = "s")]
-    #[command(about = "Manage sessions")]
-    Session(SessionArgs),
+    #[command(about = "Start/switch sessions")]
+    Start { project: String },
+
+    #[command(visible_alias = "e")]
+    #[command(about = "End current session")]
+    End,
+
+    #[command(visible_alias = "v")]
+    #[command(about = "View current session")]
+    View,
 
     #[command(visible_alias = "rm")]
     #[command(about = "Remove hours")]
@@ -60,27 +68,6 @@ enum Command {
     #[command(visible_alias = "c")]
     #[command(about = "Clear ")]
     Clear,
-}
-
-#[derive(Debug, Args)]
-struct SessionArgs {
-    #[command(subcommand)]
-    command: Option<SessionCommand>,
-}
-
-#[derive(Debug, Subcommand)]
-enum SessionCommand {
-    #[command(visible_alias = "s")]
-    #[command(about = "Start/switch sessions")]
-    Start { project: String },
-
-    #[command(visible_alias = "e")]
-    #[command(about = "End current session")]
-    End,
-
-    #[command(visible_alias = "v")]
-    #[command(about = "View current session")]
-    View,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -111,7 +98,6 @@ fn main() {
         "[hours]".to_string()
     });
 
-    // TODO: create a way to fix broken toml files
     let mut data: Data = contents
         .parse::<Table>()
         .expect("Invalid TOML file")
@@ -141,79 +127,77 @@ fn main() {
                 }
             }
         }
-        Command::Session(session) => match session.command.unwrap_or(SessionCommand::View) {
-            SessionCommand::Start { project } => match data.session {
-                Some(session) => {
-                    let elapsed = (now() - session.start) as f32 / 3600.0;
-                    let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
+        Command::Start { project } => match data.session {
+            Some(session) => {
+                let elapsed = (now() - session.start) as f32 / 3600.0;
+                let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
 
-                    println!(
-                        "Session ended - {key} [updated: {value}]",
-                        key = session.key,
-                        value = time_str(new_val)
-                    );
-                    *data.hours.entry(session.key).or_insert(new_val) += elapsed;
+                println!(
+                    "Session ended - {key} [updated: {value}]",
+                    key = session.key,
+                    value = time_str(new_val)
+                );
+                *data.hours.entry(session.key).or_insert(new_val) += elapsed;
 
-                    let hours = *data.hours.get(&project).unwrap_or(&0.0);
-                    println!(
-                        "Session started - {key} [current: {value}]",
-                        key = project,
-                        value = time_str(hours)
-                    );
-                    data.session = Some(Session::new(project));
-                }
-                None => {
-                    let hours = *data.hours.get(&project).unwrap_or(&0.0);
-                    println!(
-                        "Session started - {project} [current: {value}]",
-                        value = time_str(hours)
-                    );
-                    data.session = Some(Session::new(project));
-                }
-            },
-            SessionCommand::End => match data.session {
-                Some(session) => {
-                    let elapsed = (now() - session.start) as f32 / 3600.0;
-                    let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
+                let hours = *data.hours.get(&project).unwrap_or(&0.0);
+                println!(
+                    "Session started - {key} [current: {value}]",
+                    key = project,
+                    value = time_str(hours)
+                );
+                data.session = Some(Session::new(project));
+            }
+            None => {
+                let hours = *data.hours.get(&project).unwrap_or(&0.0);
+                println!(
+                    "Session started - {project} [current: {value}]",
+                    value = time_str(hours)
+                );
+                data.session = Some(Session::new(project));
+            }
+        },
+        Command::End => match data.session {
+            Some(session) => {
+                let elapsed = (now() - session.start) as f32 / 3600.0;
+                let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
 
-                    println!(
-                        "Session ended - {key} [updated: {value}]",
-                        key = session.key,
-                        value = time_str(new_val)
-                    );
-                    *data.hours.entry(session.key).or_insert(new_val) += elapsed;
-                    data.session = None;
-                }
-                None => {
-                    eprintln!("No session started");
-                    process::exit(1);
-                }
-            },
-            SessionCommand::View => match data.session {
-                Some(session) => {
-                    let stored = *data.hours.get(&session.key).unwrap_or(&0.0);
-                    let elapsed = (now() - session.start) as f32 / 3600.0;
-                    let total = stored + elapsed;
+                println!(
+                    "Session ended - {key} [updated: {value}]",
+                    key = session.key,
+                    value = time_str(new_val)
+                );
+                *data.hours.entry(session.key).or_insert(new_val) += elapsed;
+                data.session = None;
+            }
+            None => {
+                eprintln!("No session started");
+                process::exit(1);
+            }
+        },
+        Command::View => match data.session {
+            Some(session) => {
+                let stored = *data.hours.get(&session.key).unwrap_or(&0.0);
+                let elapsed = (now() - session.start) as f32 / 3600.0;
+                let total = stored + elapsed;
 
-                    println!(
-                        "{key} \
+                println!(
+                    "{key} \
                         \n{divider} \
                         \nStored:   {stored} \
                         \nElapsed:  {elapsed} \
                         \nTotal:    {total}",
-                        key = session.key,
-                        divider = "-".repeat(usize::max(18, session.key.len())),
-                        stored = time_str(stored),
-                        elapsed = time_str(elapsed),
-                        total = time_str(total)
-                    );
-                    process::exit(0);
-                }
-                None => {
-                    eprintln!("No session running");
-                    process::exit(1);
-                }
-            },
+                    key = session.key,
+                    divider = "-".repeat(usize::max(18, session.key.len())),
+                    stored = time_str(stored),
+                    elapsed = time_str(elapsed),
+                    total = time_str(total)
+                );
+                process::exit(0);
+            }
+            None => {
+                eprintln!("No session running");
+                process::exit(1);
+            }
         },
         Command::Remove { project } => {
             if !data.hours.contains_key(&project) {
