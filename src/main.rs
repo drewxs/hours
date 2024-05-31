@@ -107,7 +107,7 @@ fn main() {
     match args.cmd {
         Command::Add { project, hours } => {
             let new_hours = data.hours.get(&project).unwrap_or(&0.0) + hours;
-            println!("{project}: {new_hours}", new_hours = time_str(new_hours));
+            println!("{project}: {new_hours}", new_hours = fmt_time(new_hours));
             data.hours.insert(project, new_hours);
         }
         Command::List { raw } => {
@@ -122,7 +122,7 @@ fn main() {
                     false => println!(
                         "{key}:{space}{value}",
                         space = " ".repeat(longest_key - key.len() + 2),
-                        value = time_str(*value)
+                        value = fmt_time(*value)
                     ),
                 }
             }
@@ -135,7 +135,7 @@ fn main() {
                 println!(
                     "Session ended - {key} [updated: {value}]",
                     key = session.key,
-                    value = time_str(new_val)
+                    value = fmt_time(new_val)
                 );
                 *data.hours.entry(session.key).or_insert(new_val) += elapsed;
 
@@ -143,7 +143,7 @@ fn main() {
                 println!(
                     "Session started - {key} [current: {value}]",
                     key = project,
-                    value = time_str(hours)
+                    value = fmt_time(hours)
                 );
                 data.session = Some(Session::new(project));
             }
@@ -151,7 +151,7 @@ fn main() {
                 let hours = *data.hours.get(&project).unwrap_or(&0.0);
                 println!(
                     "Session started - {project} [current: {value}]",
-                    value = time_str(hours)
+                    value = fmt_time(hours)
                 );
                 data.session = Some(Session::new(project));
             }
@@ -164,7 +164,7 @@ fn main() {
                 println!(
                     "Session ended - {key} [updated: {value}]",
                     key = session.key,
-                    value = time_str(new_val)
+                    value = fmt_time(new_val)
                 );
                 *data.hours.entry(session.key).or_insert(new_val) += elapsed;
                 data.session = None;
@@ -188,9 +188,9 @@ fn main() {
                         \nTotal:    {total}",
                     key = session.key,
                     divider = "-".repeat(usize::max(18, session.key.len())),
-                    stored = time_str(stored),
-                    elapsed = time_str(elapsed),
-                    total = time_str(total)
+                    stored = fmt_time(stored),
+                    elapsed = fmt_time(elapsed),
+                    total = fmt_time(total)
                 );
                 process::exit(0);
             }
@@ -224,7 +224,7 @@ fn now() -> u64 {
         .as_secs()
 }
 
-fn time_str(time: f32) -> String {
+fn fmt_time(time: f32) -> String {
     let hours = time as u32;
     let minutes = ((time - hours as f32) * 60.0) as u32;
     let seconds = (((time - hours as f32) * 60.0 - minutes as f32) * 60.0) as u32;
