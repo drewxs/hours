@@ -1,92 +1,17 @@
+mod cli;
+mod utils;
+
 use std::{
-    collections::HashMap,
     env,
     fs::{self, File},
     process,
-    time::{SystemTime, UNIX_EPOCH},
 };
 
-use clap::{Parser, Subcommand};
-use serde::{Deserialize, Serialize};
+use clap::Parser;
 use toml::Table;
 
-#[derive(Debug, Parser)]
-#[command(
-    name = "hours",
-    version,
-    author = "Andrew X. Shah, drewshah0@gmail.com",
-    about = "Time tracking CLI", long_about = None,
-    arg_required_else_help = true,
-)]
-struct Cli {
-    #[command(subcommand)]
-    cmd: Command,
-}
-
-#[derive(Debug, Subcommand)]
-enum Command {
-    #[command(visible_alias = "l")]
-    #[command(about = "List all hours")]
-    List {
-        #[arg(short, long)]
-        #[arg(help = "List raw data")]
-        raw: bool,
-    },
-
-    #[command(visible_alias = "a")]
-    #[command(about = "Add hours")]
-    Add {
-        #[arg(index = 1)]
-        #[arg(help = "Project key")]
-        project: String,
-
-        #[arg(index = 2, allow_hyphen_values = true)]
-        #[arg(help = "Number of hours")]
-        hours: f32,
-    },
-
-    #[command(visible_alias = "s")]
-    #[command(about = "Start/switch sessions")]
-    Start { project: String },
-
-    #[command(visible_alias = "e")]
-    #[command(about = "End current session")]
-    End,
-
-    #[command(visible_alias = "v")]
-    #[command(about = "View current session")]
-    View,
-
-    #[command(visible_alias = "rm")]
-    #[command(about = "Remove hours")]
-    Remove {
-        #[arg(index = 1)]
-        #[arg(help = "Project key")]
-        project: String,
-    },
-
-    #[command(visible_alias = "c")]
-    #[command(about = "Clear ")]
-    Clear,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct Data {
-    hours: HashMap<String, f32>,
-    session: Option<Session>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct Session {
-    key: String,
-    start: u64,
-}
-
-impl Session {
-    fn new(key: String) -> Self {
-        Self { key, start: now() }
-    }
-}
+use cli::{Cli, Command, Data, Session};
+use utils::{fmt_time, now};
 
 fn main() {
     let args = Cli::parse();
@@ -215,18 +140,4 @@ fn main() {
 
     let contents = toml::to_string(&data).unwrap();
     fs::write(&path, contents).unwrap();
-}
-
-fn now() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-}
-
-fn fmt_time(time: f32) -> String {
-    let hours = time as u32;
-    let minutes = ((time - hours as f32) * 60.0) as u32;
-    let seconds = (((time - hours as f32) * 60.0 - minutes as f32) * 60.0) as u32;
-    String::from(format!("{:02}:{:02}:{:02}", hours, minutes, seconds))
 }
