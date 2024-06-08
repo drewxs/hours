@@ -11,7 +11,7 @@ use clap::Parser;
 use toml::Table;
 
 use cli::{Cli, Command, Data, Session};
-use utils::{fmt_time, now};
+use utils::{fmt_time, input, now};
 
 fn main() {
     let args = Cli::parse();
@@ -133,8 +133,14 @@ fn main() {
             println!("Removed {project}");
         }
         Command::Clear => {
-            data.hours.clear();
-            println!("Data cleared");
+            print!("Are you sure you want to clear all data? (Y/n): ");
+            match input().as_str() {
+                "yes" | "y" | "" => {
+                    data.hours.clear();
+                    println!("Data cleared");
+                }
+                _ => println!("Clear aborted"),
+            }
         }
     }
 
