@@ -20,19 +20,20 @@ hours list
 # Add hours to a project (creates a new project if it doesn't exist)
 hours add <PROJECT> <HOURS>
 
-# Start a session
+# Start/switch sessions
 # This creates a timestamp, then adds when the session is ended
-hours session start <PROJECT>
-
-# Switch session to a different project
-hours session switch <PROJECT>
+hours start <PROJECT>
 
 # End current session
-hours session end
+hours end
 
 # View current session
-hours session view
+hours view
 
 # Clear
 hours clear
 ```
+
+---
+
+[License](https://github.com/drewxs/hours/blob/main/LICENSE)
