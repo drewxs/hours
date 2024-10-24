@@ -1,5 +1,6 @@
 mod cli;
-mod utils;
+mod io;
+mod time;
 
 use std::{
     env,
@@ -11,7 +12,7 @@ use clap::Parser;
 use toml::Table;
 
 use cli::{Cli, Command, Data, Session};
-use utils::{fmt_time, input, now};
+use io::input;
 
 fn main() {
     let args = Cli::parse();
@@ -32,7 +33,7 @@ fn main() {
     match args.cmd {
         Command::Add { project, hours } => {
             let new_hours = data.hours.get(&project).unwrap_or(&0.0) + hours;
-            println!("{project}: {new_hours}", new_hours = fmt_time(new_hours));
+            println!("{project}: {new_hours}", new_hours = time::fmt(new_hours));
             data.hours.insert(project, new_hours);
         }
         Command::List { raw } => {
@@ -41,26 +42,25 @@ fn main() {
                 process::exit(0);
             }
             for (key, value) in data.hours.iter() {
-                let longest_key = data.hours.keys().map(|k| k.len()).max().unwrap();
-                match raw {
-                    true => println!("{key}: {value}"),
-                    false => println!(
-                        "{key}:{space}{value}",
-                        space = " ".repeat(longest_key - key.len() + 2),
-                        value = fmt_time(*value)
-                    ),
+                if raw {
+                    println!("{key}: {value}");
+                } else {
+                    let longest_key = data.hours.keys().map(|k| k.len()).max().unwrap();
+                    let space = " ".repeat(longest_key - key.len() + 2);
+                    let value = time::fmt(*value);
+                    println!("{key}:{space}{value}",);
                 }
             }
         }
         Command::Start { project } => match data.session {
             Some(session) => {
-                let elapsed = (now() - session.start) as f32 / 3600.0;
+                let elapsed = (time::now() - session.start) as f32 / 3600.0;
                 let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
 
                 println!(
                     "Session ended - {key} [updated: {value}]",
                     key = session.key,
-                    value = fmt_time(new_val)
+                    value = time::fmt(new_val)
                 );
                 *data.hours.entry(session.key).or_insert(new_val) += elapsed;
 
@@ -68,28 +68,25 @@ fn main() {
                 println!(
                     "Session started - {key} [current: {value}]",
                     key = project,
-                    value = fmt_time(hours)
+                    value = time::fmt(hours)
                 );
                 data.session = Some(Session::new(project));
             }
             None => {
-                let hours = *data.hours.get(&project).unwrap_or(&0.0);
-                println!(
-                    "Session started - {project} [current: {value}]",
-                    value = fmt_time(hours)
-                );
+                let hours = time::fmt(*data.hours.get(&project).unwrap_or(&0.0));
+                println!("Session started - {project} [current: {hours}]",);
                 data.session = Some(Session::new(project));
             }
         },
         Command::End => match data.session {
             Some(session) => {
-                let elapsed = (now() - session.start) as f32 / 3600.0;
+                let elapsed = (time::now() - session.start) as f32 / 3600.0;
                 let new_val = data.hours.get(&session.key).unwrap_or(&0.0) + elapsed;
 
                 println!(
                     "Session ended - {key} [updated: {value}]",
                     key = session.key,
-                    value = fmt_time(new_val)
+                    value = time::fmt(new_val)
                 );
                 *data.hours.entry(session.key).or_insert(new_val) += elapsed;
                 data.session = None;
@@ -102,7 +99,7 @@ fn main() {
         Command::View => match data.session {
             Some(session) => {
                 let stored = *data.hours.get(&session.key).unwrap_or(&0.0);
-                let elapsed = (now() - session.start) as f32 / 3600.0;
+                let elapsed = (time::now() - session.start) as f32 / 3600.0;
                 let total = stored + elapsed;
 
                 println!(
@@ -113,9 +110,9 @@ fn main() {
                         \nTotal:    {total}",
                     key = session.key,
                     divider = "-".repeat(usize::max(18, session.key.len())),
-                    stored = fmt_time(stored),
-                    elapsed = fmt_time(elapsed),
-                    total = fmt_time(total)
+                    stored = time::fmt(stored),
+                    elapsed = time::fmt(elapsed),
+                    total = time::fmt(total)
                 );
                 process::exit(0);
             }

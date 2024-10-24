@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 
-use crate::utils::now;
+use crate::time;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -79,6 +79,9 @@ pub struct Session {
 
 impl Session {
     pub fn new(key: String) -> Self {
-        Self { key, start: now() }
+        Self {
+            key,
+            start: time::now(),
+        }
     }
 }
